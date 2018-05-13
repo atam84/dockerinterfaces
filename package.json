@@ -18,7 +18,7 @@
     },
     "devDependencies": {
       "docker": "^3",
-      "ifaceinfo": "^0.2.1"
+      "ifaceinfo": "^0.2"
     },
     "repository": {
       "type": "git",
