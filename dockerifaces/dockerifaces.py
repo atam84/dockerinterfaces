@@ -1,27 +1,71 @@
 import sys
 import docker
 from ifaceinfo import InterfacesInfos
-from pprint import pprint
 
-
+#
+# target for version 0.3
+# Allow user to pass ifaceinfo (InterfacesInfos()) to the class to  skeep reloading data
+#   it's good when you have to load saved json stucture of InterfacesInfos()
+#   it's good when you use ifaceinfo package and dockerifaces package in the same programm
+# Add vswitch how the host veth are connected and put all information in the new structure
+# Collect the statistics about veth used by container
+#
 class DockerInterfaces():
-    def __init__(self):
+    def __init__(self, ifaceinfo=''):
         self.__dockerClient = docker.from_env()
-        self.__hostinterfaces = InterfacesInfos()
+        # manage the ifaceinfo is provided or not
+        if ifaceinfo == '':
+            self.__ifaceinfoprovided = False
+            self.__hostinterfaces = InterfacesInfos()
+        else:
+            self.__ifaceinfoprovided = True
+            self.__hostinterfaces = ifaceinfo
         self.__hostinterfacesIndexLink = self.__hostinterfaces.ifaces_ifindex_iflink()
         self.__containersInterfaces = self.__containers_collect_data()
         self.__ifacesinterconnected = self.__merge_interfaces()
-    
+
+    def refresh(self):
+        '''
+        refresh data loaded if not provided
+        '''
+        #if self.__ifaceinfoprovided is False we can reload else we do nothing
+        if not self.__ifaceinfoprovided:
+            self.__init__()
+
+    def reload(self):
+        '''
+        same as refresh() [alias]
+        '''
+        self.refresh()
+
     def container_ifaces_connexion(self):
+        '''
+        return merged structure json between ifaceinfo and the structure build from docker container.
+        every object in the return result use the host ethernet network name as key of the value that reprensent the relationship
+        '''
         return self.__ifacesinterconnected
 
     def local_ifaces_to_containers(self):
+        '''
+        same as container_ifaces_connexion() [alias]
+        '''
         return self.container_ifaces_connexion()
 
     def containers_ifaces_to_local_ifaces(self):
+        '''
+        return reversed structure json of container_ifaces_connexion() that reverse the entry point.
+        every object in the return result use the container short_id as key of the value that reprensent the relationship
+        '''
+        # create new object __reverse_merge
         __reverse_merge = {}
+        # get original data collected
         __merged = self.local_ifaces_to_containers()
+        # for every local host network name do the reverse :)
         for __l_ifacename in __merged:
+            # now very entry should use the short_id of container every container as key
+            #
+            #  ISSUE: In the case of multiple network interface in container !!! data will be false :(
+            #
             __reverse_merge[__merged[__l_ifacename]['container']['short_id']] = {
                 'address': __merged[__l_ifacename]['container']['address'],
                 'id': __merged[__l_ifacename]['container']['id'],
@@ -31,31 +75,41 @@ class DockerInterfaces():
                 'name': __merged[__l_ifacename]['container']['name'],
                 'short_id': __merged[__l_ifacename]['container']['short_id'],
                 'operstate': __merged[__l_ifacename]['container']['operstate'],
-                'host_interface': {
-                    'ifindex': __merged[__l_ifacename]['ifindex'],
-                    'iflink': __merged[__l_ifacename]['iflink'],
-                    'ip': __merged[__l_ifacename]['ip'],
-                    'mask': __merged[__l_ifacename]['mask'],
-                    'name': __merged[__l_ifacename]['name'],
-                    'network_address': __merged[__l_ifacename]['network_address'],
-                    'operstate': __merged[__l_ifacename]['operstate']
-                }
+                'host_interface': {}
+            }
+            # this will manage the case of multiple network interfaces in docker container
+            __reverse_merge[__merged[__l_ifacename]['container']['short_id']]['host_interface'][__merged[__l_ifacename]['name']] = {
+                'ifindex': __merged[__l_ifacename]['ifindex'],
+                'iflink': __merged[__l_ifacename]['iflink'],
+                'ip': __merged[__l_ifacename]['ip'],
+                'mask': __merged[__l_ifacename]['mask'],
+                'name': __merged[__l_ifacename]['name'],
+                'network_address': __merged[__l_ifacename]['network_address'],
+                'operstate': __merged[__l_ifacename]['operstate']
             }
         return __reverse_merge
 
-    def refresh(self):
-        self.__init__()
-
-    def reload(self):
-        self.refresh()
-
     def local_ifaces_index_link(self):
+        '''
+        return the host interfaces network ifindex and iflink informations
+        '''
         return self.__hostinterfacesIndexLink
 
     def containers_ifaces(self):
+        '''
+        return the container data collected
+        '''
         return self.__containersInterfaces
 
     def __get_containers_by(self, param):
+        '''
+        private method that return containers network information by: ifindex or iflink or address or operstate provided as string param
+        this method is used by:
+            containers_ifaces_index()
+            containers_ifaces_link()
+            containers_ifaces_addrs()
+            containers_ifaces_statue()
+        '''
         __c_interfaces = {}
         _containeriface = self.containers_ifaces()
         for _iface in _containeriface:
@@ -68,35 +122,48 @@ class DockerInterfaces():
         return __c_interfaces
 
     def containers_ifaces_index(self):
+        '''
+        return containers interface and ifindex
+        '''
         return self.__get_containers_by('ifindex')
 
     def containers_ifaces_link(self):
+        '''
+        return containers interface and iflink
+        '''
         return self.__get_containers_by('iflink')
 
     def containers_ifaces_addrs(self):
+        '''
+        return containers interface and mac address
+        '''
         return self.__get_containers_by('address')
 
     def containers_ifaces_statue(self):
+        '''
+        return containers interface and operstate
+        '''
         return self.__get_containers_by('operstate')
 
     def __merge_interfaces(self):
+        '''
+        private method used by __init__() to merge data provided by ifaceinfo and data collected by the private method __containers_collect_data()
+        '''
         __mergin = {}
         __containeriface = self.containers_ifaces()
         for containerid in __containeriface:
-            print(containerid)
             for __iface in __containeriface[containerid]:
                 if __iface != 'id' and __iface != 'name':
                     # name, addr, ifindex, iflink
-                    __c_shortid = containerid
-                    __c_id = __containeriface[containerid]['id']
+                    __c_shortid   = containerid
+                    __c_id        = __containeriface[containerid]['id']
                     __c_ifacename = __containeriface[containerid][__iface]['name']
                     __c_ifaceaddr = __containeriface[containerid][__iface]['address']
-                    __c_ifindex = __containeriface[containerid][__iface]['ifindex']
-                    __c_iflink = __containeriface[containerid][__iface]['iflink']
+                    __c_ifindex   = __containeriface[containerid][__iface]['ifindex']
+                    __c_iflink    = __containeriface[containerid][__iface]['iflink']
                     __c_ifoperstate = __containeriface[containerid][__iface]['operstate']
                     for __localifaces in self.local_ifaces_index_link():
                         if __localifaces['ifindex'] == __c_iflink and __localifaces['iflink'] == __c_ifindex:
-                            pprint(__localifaces)
                             __mergin[__localifaces['name']] = {
                                 'ifindex': __localifaces['ifindex'],
                                 'iflink': __localifaces['iflink'],
@@ -135,6 +202,9 @@ class DockerInterfaces():
 
 
     def __containers_collect_data(self):
+        '''
+        the main function that use docker python package to get data from container using exec_run() this method is called by __init__()
+        '''
         __dockerClient = docker.from_env()
         _containers = __dockerClient.containers.list()
         _containersinfos = {}
