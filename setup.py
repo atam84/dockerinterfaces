@@ -8,7 +8,7 @@ setup(name='dockerifaces',
       author='Mohamed Amine TAMDY',
       author_email='amine.tamdy@gmail.com',
       license='MIT',
-      packages=['dockerinfaces'],
+      packages=['dockerifaces'],
       keywords='docker network interface route tcp udp analyser development',
       install_requires=[
           'docker',
