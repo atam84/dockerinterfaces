@@ -2,7 +2,7 @@ from setuptools import setup
 #from distutils.core import setup
 
 setup(name='dockerifaces',
-      version='0.2',
+      version='0.2.5',
       description='Use this package to find the virtual network of container -> connected to which virtual host network',
       url='https://github.com/atam84/dockerinterfaces',
       author='Mohamed Amine TAMDY',
