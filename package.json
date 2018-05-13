@@ -13,12 +13,12 @@
       "appveyorTest": "mocha --ui tdd --reporter mocha-appveyor-reporter test/*.js"
     },
     "dependencies": {
-        "docker": "^3",
-        "ifaceinfo": "^0.2.1"
+        "docker/docker-py": "^3",
+        "atam84/ifaceinfo": ">=0.2.0"
     },
     "devDependencies": {
-      "docker": "^3",
-      "ifaceinfo": "^0.2.1"
+      "docker/docker-py": "^3",
+      "atam84/ifaceinfo": ">=0.2.0"
     },
     "repository": {
       "type": "git",
