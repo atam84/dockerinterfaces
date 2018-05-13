@@ -1,9 +1,10 @@
+import sys
 import docker
 from ifaceinfo import InterfacesInfos
 from pprint import pprint
 
 
-class DockerInterfacesLink():
+class DockerInterfaces():
     def __init__(self):
         self.__dockerClient = docker.from_env()
         self.__hostinterfaces = InterfacesInfos()
@@ -18,25 +19,6 @@ class DockerInterfacesLink():
         return self.container_ifaces_connexion()
 
     def containers_ifaces_to_local_ifaces(self):
-        '''
-         'vethf846c37': {
-            'container': {
-                'address': '02:42:ac:11:00:05',
-                'id': u'e1196cd5666961e7dcafcbe10a93940ceb67c73467b4f1f3cb320b75716fb09a',
-                'ifacename': 'eth0',
-                'ifindex': 22,
-                'iflink': 23,
-                'name': 'eth0',
-                'short_id': u'e1196cd566'
-            },
-            'ifindex': 23,
-            'iflink': 22,
-            'ip': '169.254.224.151',
-            'mask': '255.255.0.0',
-            'name': 'vethf846c37',
-            'network_address': '169.254.0.0',
-            'operstate': 'up'} 
-        '''
         __reverse_merge = {}
         __merged = self.local_ifaces_to_containers()
         for __l_ifacename in __merged:
@@ -73,14 +55,29 @@ class DockerInterfacesLink():
     def containers_ifaces(self):
         return self.__containersInterfaces
 
+    def __get_containers_by(self, param):
+        __c_interfaces = {}
+        _containeriface = self.containers_ifaces()
+        for _iface in _containeriface:
+            for _c_ifinfo in _containeriface[_iface]:
+                if _c_ifinfo != 'name' and _c_ifinfo != 'id':
+                    __c_interfaces[_iface] = {}
+                    __c_interfaces[_iface][_c_ifinfo] = {
+                        param: _containeriface[_iface][_c_ifinfo][param]
+                    }
+        return __c_interfaces
+
     def containers_ifaces_index(self):
-        return
+        return self.__get_containers_by('ifindex')
 
     def containers_ifaces_link(self):
-        return 
+        return self.__get_containers_by('iflink')
 
     def containers_ifaces_addrs(self):
-        return 
+        return self.__get_containers_by('address')
+
+    def containers_ifaces_statue(self):
+        return self.__get_containers_by('operstate')
 
     def __merge_interfaces(self):
         __mergin = {}
@@ -149,7 +146,7 @@ class DockerInterfacesLink():
             # iface networks for this container
             _ifnetworks = _container.exec_run('ls /sys/class/net')
             if _ifnetworks.exit_code == 0:
-                _ifnetworks = _ifnetworks.output.split('\n')
+                _ifnetworks = _ifnetworks.output.decode().split('\n')
                 # now for every interface located except lo and empty string in the list
                 _ifnetworks = [_iface for _iface in _ifnetworks if _iface and _iface != 'lo']
                 # now get ifindex, iflink and interface physical address for every interface
@@ -160,16 +157,16 @@ class DockerInterfacesLink():
                     _ifoperstate = _container.exec_run('cat /sys/class/net/' + iface + '/operstate')
                     _containersinfos[_container.short_id][iface] = {
                         'name': iface,
-                        'ifindex': self.__convert_value(_ifindex.output) if _ifindex.exit_code == 0 else -1,
-                        'iflink': self.__convert_value(_iflink.output) if _iflink.exit_code == 0 else -1,
-                        'address': self.__convert_value(_ifaddr.output.replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown',
-                        'operstate' : self.__convert_value(_ifoperstate.output.replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown'
+                        'ifindex': self.__convert_value(_ifindex.output.decode()) if _ifindex.exit_code == 0 else -1,
+                        'iflink': self.__convert_value(_iflink.output.decode()) if _iflink.exit_code == 0 else -1,
+                        'address': self.__convert_value(_ifaddr.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown',
+                        'operstate' : self.__convert_value(_ifoperstate.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown'
                     }
         return _containersinfos
 
 
 def test_def():
-    _containersNetworks = DockerInterfacesLink()
+    _containersNetworks = DockerInterfaces()
     print('** Local interfaces index and link: {}'.format(len(_containersNetworks.local_ifaces_index_link())))
     pprint(_containersNetworks.local_ifaces_index_link())
     print('\n')
@@ -179,6 +176,11 @@ def test_def():
     pprint(_containersNetworks.local_ifaces_to_containers())
     print('\n\n')
     pprint(_containersNetworks.containers_ifaces_to_local_ifaces())
+    print('\n\n')
+    pprint(_containersNetworks.containers_ifaces_index())
+    pprint(_containersNetworks.containers_ifaces_addrs())
+    pprint(_containersNetworks.containers_ifaces_link())
+    pprint(_containersNetworks.containers_ifaces_statue())
 
 if __name__ == '__main__':
     test_def()
