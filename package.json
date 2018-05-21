@@ -1,0 +1,33 @@
+{
+    "name": "dockerinterfaces",
+    "version": "0.2",
+    "description": "using ifaceinfo and docker modules the module can provide the connexion of container virtual network card to the virtual card in the host machine.",
+    "keywords": [
+      "python",
+      "docker",
+      "network",
+      "interfaces"
+    ],
+    "scripts": {
+      "test": "mocha -R spec",
+      "appveyorTest": "mocha --ui tdd --reporter mocha-appveyor-reporter test/*.js"
+    },
+    "dependencies": {
+        "docker/docker-py": "^3",
+        "atam84/ifaceinfo": ">=0.2.0"
+    },
+    "devDependencies": {
+      "docker/docker-py": "^3",
+      "atam84/ifaceinfo": ">=0.2.0"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/atam84/dockerinterfaces.git"
+    },
+    "homepage": "https://github.com/atam84/dockerinterfaces",
+    "author": {
+      "name": "mohamed amine tamdy",
+      "email": "amine.tamdy@gmail.com"
+    },
+    "license": "MIT"
+  }
