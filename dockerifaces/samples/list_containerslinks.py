@@ -38,7 +38,7 @@ class COLOR:
         RESET   = '\033[49m'
 
     class style:
-        BOLD    = '\033[1m'
+        BOLD      = '\033[1m'
         DIM       = '\033[2m'
         NORMAL    = '\033[22m'
         RESET_ALL = '\033[0m'
@@ -146,68 +146,58 @@ def white_u_bold_string(__str):
     ''' return formated object string that can be displayed in therminal as bold underline white string '''
     return color_string(__str, COLOR.fg.WHITE, COLOR.style.BOLD + COLOR.style.UNDERLINE)
 
+def eval_string(__str, is_Green, is_Yellow, is_Red, is_Other):
+    __nstr = ''
+    if __str == is_Green:
+        __nstr = success_bold_string(__str)
+    elif __str == is_Yellow:
+        __nstr = warning_bold_string(__str)
+    elif __str == is_Red:
+        __nstr = error_bold_string(__str)
+    else:
+        __nstr = important_bold_string(__str)
+    return __nstr
+
+
+
 def get_network_interfaces():
-    ifaces = InterfacesInfos().ifaces_as_dict()
+    ifaces     = InterfacesInfos().ifaces_as_dict()
     containers = DockerInterfaces().local_ifaces_to_containers()
     _report = {
-        'n_iface': 0,
-        'iface_oper_up': 0,
-        'iface_oper_down': 0,
+        'n_iface'           : 0,
+        'iface_oper_up'     : 0,
+        'iface_oper_down'   : 0,
         'iface_oper_unknown': 0,
-        'br_count': 0,
+        'br_count'          : 0
     }
     for interface in ifaces:
         #_ifacename =  cl.style.BOLD + interface + cl.style.RESET_ALL
         _ifacename = white_bold_string(interface)
         _report['n_iface'] += 1
-        _operstate = ifaces[interface]['operstate']
-        if _operstate == 'up':
+        _operstate = eval_string(ifaces[interface]['operstate'], 'up', 'unknown', 'down', '')
+        if _operstate['string'] == 'up':
             _report['iface_oper_up'] += 1
-            _operstate = cl.fg.GREEN + _operstate + cl.fg.RESET
-        elif _operstate == 'down':
+        elif _operstate['string'] == 'down':
             _report['iface_oper_down'] += 1
-            _operstate = cl.fg.RED + _operstate + cl.fg.RESET
         else:
             _report['iface_oper_unknown'] += 1
-            _operstate = cl.fg.YELLOW + _operstate + cl.fg.RESET
-        
-        _collisions = ifaces[interface]['statistics']['collisions']
-        if _collisions == 0:
-            _collisions = cl.fg.GREEN + str(_collisions) + cl.fg.RESET
-        else:
-            _collisions = cl.fg.RED + str(_collisions) + cl.fg.RESET
-        _multicast = str(ifaces[interface]['statistics']['multicast'])
-        _tx_errors = ifaces[interface]['statistics']['tx_errors']
-        if _tx_errors == 0:
-            _tx_errors = cl.fg.GREEN + str(_tx_errors) + cl.fg.RESET
-        elif _tx_errors <= 100:
-            _tx_errors = cl.fg.YELLOW + str(_tx_errors) + cl.fg.RESET
-        else:
-            _tx_errors = cl.fg.RED + str(_tx_errors) + cl.fg.RESET
-        _rx_errors = ifaces[interface]['statistics']['rx_errors']
-        if _rx_errors == 0:
-            _rx_errors = cl.fg.GREEN + str(_rx_errors) + cl.fg.RESET
-        elif _rx_errors <= 100:
-            _rx_errors = cl.fg.YELLOW + str(_rx_errors) + cl.fg.RESET
-        else:
-            _rx_errors = cl.fg.RED + str(_rx_errors) + cl.fg.RESET
-        _devtype = ifaces[interface]['uevent']['devtype']
-        if _devtype == 'bridge':
+
+        _collisions = str(ifaces[interface]['statistics']['collisions'])
+        _multicast  = str(ifaces[interface]['statistics']['multicast'])
+        _tx_errors  = str(ifaces[interface]['statistics']['tx_errors'])
+        _rx_errors  = str(ifaces[interface]['statistics']['rx_errors'])
+
+        _devtype = eval_string(ifaces[interface]['uevent']['devtype'], 'bridge', 'wlan', '', 'unknown')
+        if _devtype['string'] == 'bridge':
             _report['br_count'] += 1
-            _devtype = cl.style.BOLD + _devtype + cl.style.RESET_ALL
-        elif _devtype == 'wlan':
-            _devtype = cl.style.BOLD + cl.fg.MAGENTA + _devtype + cl.style.RESET_ALL
-        elif _devtype == 'unknown':
-            _devtype = cl.style.BOLD + cl.fg.BLUE + _devtype + cl.style.RESET_ALL
-        else:
-            _devtype = cl.style.BOLD + cl.fg.YELLOW + _devtype + cl.style.RESET_ALL
+
         _marker = warning_bold_string('**') # cl.fg.YELLOW + '**' + cl.fg.RESET
         print('{} interface name: {}    id: {}     type: {}'.format(_marker['colored'], _ifacename['colored'], ifaces[interface]['dev_id'], ifaces[interface]['type']))
-        print('      {:14s} : {:22s} {:14s} : {:22s}'.format('dev type', _devtype, 'operstate', _operstate))
-        print('      {:14s} : {:22s} {:14s} : {:22s}'.format('address', ifaces[interface]['address'], 'iface alias', ifaces[interface]['ifalias']))
-        print('      {:14s} : {:22s} {:14s} : {:22s}'.format('iface link', str(ifaces[interface]['iflink']), 'iface index', str(ifaces[interface]['ifindex'])))
-        print('      {:14s} : {:22s} {:14s} : {:22s}'.format('ip', ifaces[interface]['ip'], 'mask', ifaces[interface]['mask']))
-        print('      {:14s} : {:22s} {:14s} : {:22s}'.format('network', ifaces[interface]['network_address'],'mtu', str(ifaces[interface]['mtu'])))
+        print('        {:14s} : {:22s} {:14s} : {:22s}'.format('dev type', _devtype['colored'], 'operstate', _operstate['colored']))
+        print('        {:14s} : {:22s} {:14s} : {:22s}'.format('address', ifaces[interface]['address'], 'iface alias', ifaces[interface]['ifalias']))
+        print('        {:14s} : {:22s} {:14s} : {:22s}'.format('iface link', str(ifaces[interface]['iflink']), 'iface index', str(ifaces[interface]['ifindex'])))
+        print('        {:14s} : {:22s} {:14s} : {:22s}'.format('ip', ifaces[interface]['ip'], 'mask', ifaces[interface]['mask']))
+        print('        {:14s} : {:22s} {:14s} : {:22s}'.format('network', ifaces[interface]['network_address'],'mtu', str(ifaces[interface]['mtu'])))
         #ifaces[interface]['timestamp']
         #ifaces[interface]['name_assign_type']
         print('    {}'.format(cl.style.DIM + cl.style.UNDERLINE + 'interface statistics:' + cl.style.RESET_ALL))
@@ -223,18 +213,22 @@ def get_network_interfaces():
                     __ifaceconnected = ifaces[interface]['lower'][key]['uevent']['interface']
                     __havecontainerconnected = ''
                     if __ifaceconnected in containers:
-                        __havecontainerconnected = '<-> container id: {:s}  {:s}  {:s}'.format(containers[__ifaceconnected]['container']['short_id'], containers[__ifaceconnected]['container']['address'], containers[__ifaceconnected]['container']['operstate'])
-                    print('        {:20s} {:20s} {:s} {:s} '.format(ifaces[interface]['lower'][key]['uevent']['interface'], ifaces[interface]['lower'][key]['address'], ifaces[interface]['lower'][key]['operstate'], __havecontainerconnected))
-
+                        interface_state = eval_string(containers[__ifaceconnected]['container']['operstate'], 'up', 'unknown', 'down', '')
+                        containershortid = white_normal_string(containers[__ifaceconnected]['container']['short_id'])
+                        __havecontainerconnected = '<-> container id: {:s}  {:s}  {:s}'.format(containershortid['colored'], containers[__ifaceconnected]['container']['address'], interface_state['colored'])
+                    vinterface_state = eval_string(ifaces[interface]['lower'][key]['operstate'], 'up', 'unknown', 'down', '')
+                    print('        {:20s} {:20s} {:s} {:s} '.format(ifaces[interface]['lower'][key]['uevent']['interface'], ifaces[interface]['lower'][key]['address'], vinterface_state['colored'], __havecontainerconnected))
         else:
             if 'upper' in ifaces[interface]:
                 print('    {}'.format(cl.style.DIM + cl.style.UNDERLINE + 'device connected on bridge:' + cl.style.RESET_ALL))
                 for key in ifaces[interface]['upper']:
                     #if key.startswith('upper_'):
-                    print('        {:20s} {:20s} {:s}'.format(ifaces[interface]['upper'][key]['uevent']['interface'], ifaces[interface]['upper'][key]['address'], ifaces[interface]['upper'][key]['operstate']))
+                    upper_iface = eval_string(ifaces[interface]['upper'][key]['operstate'], 'up', 'unknown', 'down', '')
+                    print('        {:20s} {:20s} {:s}'.format(ifaces[interface]['upper'][key]['uevent']['interface'], ifaces[interface]['upper'][key]['address'], upper_iface['colored']))
         if interface in containers:
-            print('        connected to container id: {}    addr: {}     state: {}'.format(containers[interface]['container']['short_id'], containers[interface]['container']['address'], containers[interface]['container']['operstate']))
-        
+            container_iface = eval_string(containers[interface]['container']['operstate'], 'up', 'unknown', 'down', '')
+            print('        connected to container id: {}    addr: {}     state: {}'.format(containers[interface]['container']['short_id'], containers[interface]['container']['address'], container_iface['colored']))
+
         print('\n')
     print('---------------')
     #print('{}{} network interfaces that include {} bridge listed where {} up, {} down and {} with unknown status.{}'.format(cl.fg.WHITE, _report['n_iface'], _report['br_count'], _report['iface_oper_up'], _report['iface_oper_down'], _report['iface_oper_unknown'], cl.fg.RESET))
@@ -243,44 +237,7 @@ def get_network_interfaces():
     print('{} up, {} down and {} with unknown status.'.format(_report['iface_oper_up'], _report['iface_oper_down'], _report['iface_oper_unknown']))
     print('{}'.format(cl.style.RESET_ALL))
     print('---------------')
-'''
-ifacename : {
-    'ifindex': __localifaces['ifindex'],
-    'iflink': __localifaces['iflink'],
-    'ip': __localifaces['ip'],
-    'mask': __localifaces['mask'],
-    'name': __localifaces['name'],
-    'network_address': __localifaces['network_address'],
-    'operstate': __localifaces['operstate'],
-    'container': {
-        'short_id':__c_shortid,
-        'address': __c_ifaceaddr,
-        'ifindex': __c_ifindex,
-        'iflink': __c_iflink,
-        'ifacename': __c_ifacename,
-        'id': __c_id,
-        'name': __iface,
-        'operstate': __c_ifoperstate
-    }
-}
 
-
-{'veth5a7105e': {'container': {'address': u'02:42:ac:11:00:02',
-                               'id': u'4240c1a56ce64ca500e7bea4f5d9f31516134c095a2aedafeeb5999477b3c352',
-                               'ifacename': u'eth0',
-                               'ifindex': 15,
-                               'iflink': 16,
-                               'name': u'eth0',
-                               'operstate': u'up',
-                               'short_id': u'4240c1a56c'},
-                 'ifindex': 16,
-                 'iflink': 15,
-                 'ip': '169.254.54.26',
-                 'mask': '255.255.0.0',
-                 'name': 'veth5a7105e',
-                 'network_address': '169.254.0.0',
-                 'operstate': 'up'},
-'''
 
 if __name__ == '__main__':
     get_network_interfaces()
