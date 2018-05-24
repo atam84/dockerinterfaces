@@ -12,7 +12,11 @@ from ifaceinfo import InterfacesInfos
 #
 class DockerInterfaces():
     def __init__(self, ifaceinfo=''):
-        self.__dockerClient = docker.from_env()
+        try:
+            self.__dockerClient = docker.from_env()
+        except ConnectionError as ConnError:
+            print('Connexion error' + ConnError)
+            raise ValueError('Docker is not ruuning.')
         # manage the ifaceinfo is provided or not
         if ifaceinfo == '':
             self.__ifaceinfoprovided = False
@@ -187,12 +191,15 @@ class DockerInterfaces():
                     _iflink      = _container.exec_run('cat /sys/class/net/' + iface + '/iflink')
                     _ifaddr      = _container.exec_run('cat /sys/class/net/' + iface + '/address')
                     _ifoperstate = _container.exec_run('cat /sys/class/net/' + iface + '/operstate')
+                    # get interface statistics :)
+                    #_statistics  = _container.exec_run('echo "{"; for i in $(ls /sys/class/net/' + iface + '/statistics); do echo "\"$i\": $(cat $i), "; done; echo "}"')
                     _containersinfos[_container.short_id][iface] = {
-                        'name'      : iface,
-                        'ifindex'   : self.__convert_value(_ifindex.output.decode()) if _ifindex.exit_code == 0 else -1,
-                        'iflink'    : self.__convert_value(_iflink.output.decode()) if _iflink.exit_code == 0 else -1,
-                        'address'   : self.__convert_value(_ifaddr.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown',
-                        'operstate' : self.__convert_value(_ifoperstate.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown'
+                        'name'       : iface,
+                        'ifindex'    : self.__convert_value(_ifindex.output.decode()) if _ifindex.exit_code == 0 else -1,
+                        'iflink'     : self.__convert_value(_iflink.output.decode()) if _iflink.exit_code == 0 else -1,
+                        'address'    : self.__convert_value(_ifaddr.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown',
+                        'operstate'  : self.__convert_value(_ifoperstate.output.decode().replace('\n', '')) if _ifaddr.exit_code == 0 else 'unknown'
+                        #'statistics' : _statistics
                     }
         return _containersinfos
 
