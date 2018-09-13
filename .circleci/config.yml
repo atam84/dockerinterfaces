@@ -50,6 +50,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
+            cd dockerifaces
             ls -l
             pwd
             python manage.py test
