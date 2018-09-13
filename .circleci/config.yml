@@ -23,11 +23,13 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}
+          - v1-dependencies-{{ checksum "dockerifaces/requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
       - run:
+          name: take a look to directory
+          command: pwd && ls
           name: install dependencies
           command: |
             python3 -m venv venv
@@ -37,7 +39,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+          key: v1-dependencies-{{ checksum "dockerifaces/requirements.txt" }}
         
       # run tests!
       # this example uses Django's built-in test-runner
